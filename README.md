@@ -19,7 +19,28 @@ part of Cockpit rather than an embedded third-party dashboard.
 
 ## Screenshots
 
-<!-- TODO: add screenshots, e.g. ![Dashboard](docs/screenshots/dashboard.png) -->
+### Dashboard
+<img width="1871" height="1103" alt="image" src="https://github.com/user-attachments/assets/f79242c3-f78a-425e-8a07-8e1cfd4147a4" />
+
+### Disks
+<img width="1866" height="1665" alt="image" src="https://github.com/user-attachments/assets/35da1e20-fe81-4f6e-b0ca-02623e4ef2a1" />
+
+
+### Tasks
+<img width="1866" height="1665" alt="image" src="https://github.com/user-attachments/assets/05b08af5-375d-449f-998a-dd77f52b6ae6" />
+
+
+### Differences
+<img width="1866" height="1665" alt="image" src="https://github.com/user-attachments/assets/3915d5ff-0ab6-4b1a-8955-2b1a5318dd5d" />
+
+
+### Recovery
+<img width="1866" height="1665" alt="image" src="https://github.com/user-attachments/assets/d6e5dde6-806c-495b-9ac6-2524d470ad12" />
+
+
+### Settings
+<img width="1873" height="1768" alt="image" src="https://github.com/user-attachments/assets/a1d1a0c7-b54f-4846-b9a3-37868113aac5" />
+
 
 ## Requirements
 
