@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="addon">
+  <id>org.cockpit_project.snapraid</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <name>SnapRAID</name>
+  <summary>Manage SnapRAID array status and maintenance tasks</summary>
+  <description>
+    <p>
+      Shows SnapRAID array health, disk roles, SMART status, and sync/scrub
+      history, and lets you trigger sync/scrub/diff jobs, backed by
+      snapraid-daemon's local REST API.
+    </p>
+  </description>
+  <extends>org.cockpit_project.cockpit</extends>
+  <launchable type="cockpit-manifest">snapraid</launchable>
+  <url type="homepage">https://github.com/amadvance/snapraid-daemon</url>
+</component>

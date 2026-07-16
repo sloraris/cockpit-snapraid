@@ -1,0 +1,15 @@
+{
+    "requires": {
+        "cockpit": "137"
+    },
+
+    "menu": {
+        "index": {
+            "label": "SnapRAID",
+            "path": "index.html",
+            "order": 50
+        }
+    },
+
+    "content-security-policy": "default-src 'self' 'unsafe-inline'"
+}
