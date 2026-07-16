@@ -52,7 +52,21 @@ part of Cockpit rather than an embedded third-party dashboard.
   exposed on the LAN, since the plugin reaches it locally through the bridge
 - Cockpit (`cockpit-bridge` ≥ 137)
 
+## Install
+
+Grab the latest `.deb` from [Releases](https://github.com/sloraris/cockpit-snapraid/releases/latest)
+and install it:
+
+```
+sudo apt install ./cockpit-snapraid_*_all.deb
+```
+
+Reload Cockpit in your browser afterward. A new `.deb` is published automatically
+whenever a change lands on `main`.
+
 ## Development
+
+The rest of this section is for working on the plugin itself, not just using it.
 
 ```
 sudo apt install gettext nodejs npm make   # or dnf/zypper equivalents

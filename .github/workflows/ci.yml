@@ -1,0 +1,49 @@
+name: ci
+
+# Runs on every PR targeting main, so a broken change gets caught before
+# merge -- release-deb.yml only runs *after* a push lands on main, which is
+# too late to prevent a bad release. Wire this up as a required status
+# check in the branch protection rule for main.
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y gettext make
+
+      # cockpit.format()'s placeholder regex greedily matches trailing
+      # letters, so "$0h" parses as one unresolvable token instead of "0"
+      # + literal "h", silently substituting an empty string. Found and
+      # fixed six instances of this in one session; guard against it
+      # coming back. Use ${0} instead when a placeholder is immediately
+      # followed by a letter/digit/underscore.
+      - name: Guard against cockpit.format() placeholder bug
+        run: |
+          if grep -rnE '\$[0-9][a-zA-Z0-9_]' src/; then
+            echo "::error::Found \$0-style cockpit.format() placeholders immediately followed by a letter/digit — these silently swallow their value. Use \${0} instead."
+            exit 1
+          fi
+
+      - name: Build (also installs npm deps)
+        run: make
+
+      - name: Type check
+        run: npx tsc --noEmit -p .
+
+      - name: Lint
+        run: |
+          npm run eslint
+          npm run stylelint
+
+      - name: Smoke test
+        run: ./test/smoke-test.sh dist
