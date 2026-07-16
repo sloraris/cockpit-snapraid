@@ -1,0 +1,77 @@
+name: release-deb
+
+# Auto-bumps a patch version tag, builds a .deb, and publishes it as a
+# GitHub release, whenever main gets a push that touches actual plugin
+# code. Doc-only changes (README, etc.) don't trigger this.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'build.js'
+      - 'package.json'
+      - 'Makefile'
+      - 'packaging/**'
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y gettext make dpkg-dev
+
+      # Populates node_modules so eslint/stylelint can run; also exercises
+      # the same dependency-install path make deb will use later.
+      - name: Build (dev mode, also installs npm deps)
+        run: make
+
+      - name: Lint
+        run: |
+          npm run eslint
+          npm run stylelint
+
+      - name: Compute next version
+        id: version
+        run: |
+          latest=$(git tag --list '[0-9]*' --sort=-v:refname | head -1)
+          if [ -z "$latest" ]; then
+            next="0.1.0"
+          else
+            IFS=. read -r major minor patch <<< "$latest"
+            next="$major.$minor.$((patch + 1))"
+          fi
+          echo "Next version: $next"
+          echo "version=$next" >> "$GITHUB_OUTPUT"
+
+      - name: Tag release
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${{ steps.version.outputs.version }}" -m "Automated release ${{ steps.version.outputs.version }}"
+          git push origin "${{ steps.version.outputs.version }}"
+
+      - name: Build .deb
+        run: |
+          rm -rf dist runtime-npm-modules.txt
+          make deb
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.version.outputs.version }}" \
+            --title "${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            cockpit-snapraid_${{ steps.version.outputs.version }}_all.deb

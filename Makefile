@@ -161,6 +161,21 @@ rpm: $(TARFILE) $(NODE_CACHE) $(SPEC)
 	rm -r "`pwd`/rpmbuild"
 	rm -r "`pwd`/output" "`pwd`/build"
 
+# Debian package. This is a pure static web asset (no compiled code), so a
+# hand-assembled tree + dpkg-deb is enough; no need for full debhelper.
+DEB_NAME=$(RPM_NAME)_$(VERSION)_all.deb
+DEB_ROOT=deb-root
+
+deb: export NODE_ENV=production
+deb: $(DIST_TEST)
+	rm -rf $(DEB_ROOT)
+	mkdir -p $(DEB_ROOT)/DEBIAN $(DEB_ROOT)/usr/share/cockpit/$(PACKAGE_NAME)
+	cp -r dist/. $(DEB_ROOT)/usr/share/cockpit/$(PACKAGE_NAME)/
+	sed 's/VERSION/$(VERSION)/' packaging/debian/control.in > $(DEB_ROOT)/DEBIAN/control
+	dpkg-deb --build --root-owner-group $(DEB_ROOT) $(DEB_NAME)
+	rm -rf $(DEB_ROOT)
+	@ls -1 $(DEB_NAME)
+
 # build a VM with locally built distro pkgs installed
 # disable networking, VM images have mock/pbuilder with the common build dependencies pre-installed
 $(VM_IMAGE): export XZ_OPT=-0

@@ -1,0 +1,13 @@
+Package: cockpit-snapraid
+Version: VERSION
+Section: admin
+Priority: optional
+Architecture: all
+Depends: cockpit-bridge (>= 137)
+Maintainer: sloraris <sloraris@users.noreply.github.com>
+Homepage: https://github.com/sloraris/cockpit-snapraid
+Description: SnapRAID status and controls for Cockpit
+ Native Cockpit page for snapraid-daemon's local REST API. Shows array and
+ disk status, SMART health summaries, sync/scrub/diff controls, task
+ history, and daemon configuration, without exposing snapraid-daemon's
+ own unauthenticated web UI on the network.

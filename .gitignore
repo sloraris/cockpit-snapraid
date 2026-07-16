@@ -5,6 +5,7 @@
 #  - patterns to match files in subdirs
 
 # general patterns
+*.deb
 *.pyc
 *.rpm
 
@@ -19,6 +20,7 @@
 /cockpit-*.spec
 /cockpit-*.tar.xz
 /cockpit-navigator.spec
+/deb-root/
 /dist/
 /metafile.json
 /package-lock.json
