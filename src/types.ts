@@ -96,6 +96,7 @@ export interface Device {
     wear_level?: number;
     annual_failure_rate?: number;
     failure_probability?: number;
+    temp_history_24h?: number[];
     smart?: Smart;
 }
 
@@ -195,4 +196,30 @@ export interface ArrayInfo {
     fix_recovered?: number;
     fix_unrecoverable?: number;
     fixes?: Fix[];
+}
+
+export type LogLevel = 'critical' | 'error' | 'warning' | 'info';
+
+export interface Config {
+    pulse?: Pulse;
+    config_full_access?: boolean;
+    maintenance_schedule?: string;
+    sync_threshold_deletes?: number;
+    sync_threshold_updates?: number;
+    sync_prehash?: boolean;
+    sync_prevent_truncations?: boolean;
+    scrub_percentage?: number;
+    scrub_older_than?: number;
+    touch_zero_subseconds?: boolean;
+    probe_interval_minutes?: number;
+    spindown_idle_minutes?: number;
+    hook_run_as_user?: string;
+    hook_script?: string;
+    notify_syslog_enabled?: boolean;
+    notify_syslog_level?: LogLevel;
+    notify_run_as_user?: string;
+    notify_heartbeat?: string;
+    notify_result?: string;
+    notify_result_level?: LogLevel;
+    notify_differences?: boolean;
 }

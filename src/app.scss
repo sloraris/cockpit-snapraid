@@ -9,3 +9,83 @@ p {
     padding-block: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--md);
     padding-inline: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--lg);
 }
+
+// Cockpit's build only ships a trimmed patternfly-6-cockpit.scss without the
+// full utilities stylesheet, so pf-v6-u-* classes silently do nothing here.
+// These are our own equivalents for the handful we actually need.
+.snapraid-subtle {
+    color: var(--pf-t--global--text--color--subtle);
+}
+
+.snapraid-text-sm {
+    font-size: var(--pf-t--global--font--size--body--sm);
+}
+
+.snapraid-mt-xs { margin-block-start: var(--pf-t--global--spacer--100); }
+.snapraid-mt-sm { margin-block-start: var(--pf-t--global--spacer--sm); }
+.snapraid-mt-md { margin-block-start: var(--pf-t--global--spacer--md); }
+.snapraid-mb-xs { margin-block-end: var(--pf-t--global--spacer--100); }
+.snapraid-mb-sm { margin-block-end: var(--pf-t--global--spacer--sm); }
+.snapraid-mb-md { margin-block-end: var(--pf-t--global--spacer--md); }
+.snapraid-mr-sm { margin-inline-end: var(--pf-t--global--spacer--sm); }
+
+// Gallery cards (disks, settings, recovery) otherwise blend into the page
+// background with no visible separation.
+.snapraid-page .pf-v6-c-card {
+    border: 1px solid var(--pf-t--global--border--color--default);
+}
+
+// Give trailing badges in a CardTitle a little breathing room so they don't
+// sit flush against the card's rounded corner and read as clipped.
+.snapraid-card-title-badge {
+    margin-inline-end: var(--pf-t--global--spacer--100);
+}
+
+.snapraid-health-banner {
+    border-radius: var(--pf-t--global--border--radius--medium);
+    overflow: hidden;
+}
+
+.snapraid-temp-sparkline {
+    width: 100%;
+    height: 1.5rem;
+    color: var(--pf-t--global--icon--color--status--info--default);
+}
+
+// Plain HTML text (not SVG) so it isn't distorted by the chart's
+// non-uniform preserveAspectRatio="none" scaling.
+.snapraid-temp-sparkline-label {
+    font-size: var(--pf-t--global--font--size--body--sm);
+    color: var(--pf-t--global--text--color--subtle);
+    line-height: 1.4;
+}
+
+// Disk cards otherwise only had a 1px outline against the page background,
+// which reads as barely-there. Give them a visibly distinct fill.
+.snapraid-disk-card {
+    background-color: var(--pf-t--global--background--color--tertiary--default);
+}
+
+.snapraid-icon-success {
+    color: var(--pf-t--global--icon--color--status--success--default);
+}
+
+.snapraid-quiet-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pf-t--global--spacer--100);
+    color: var(--pf-t--global--text--color--subtle);
+    cursor: pointer;
+}
+
+.snapraid-task-detail {
+    padding-block: var(--pf-t--global--spacer--sm);
+}
+
+.snapraid-report-output {
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: var(--pf-t--global--font--size--body--sm);
+    white-space: pre-wrap;
+    margin-block-start: var(--pf-t--global--spacer--sm);
+    margin-bottom: 0;
+}

@@ -15,7 +15,7 @@ import { useEffect, useState } from 'react';
 import cockpit from 'cockpit';
 
 import { daemonClient, getJSON } from './daemon';
-import type { ArrayInfo, DisksResponse, Pulse, StateResponse, TasksResponse } from './types';
+import type { ArrayInfo, Config, DisksResponse, Pulse, StateResponse, TasksResponse } from './types';
 
 const POLL_INTERVAL_MS = 3000;
 const LIMIT_MESSAGES = 10;
@@ -27,6 +27,7 @@ export interface SnapraidData {
     array?: ArrayInfo;
     disks?: DisksResponse;
     tasks?: TasksResponse;
+    config?: Config;
     error?: string | undefined;
     loading: boolean;
 }
@@ -59,6 +60,12 @@ export function useSnapraidData(historyLimit: number): SnapraidData {
                 setData(d => ({ ...d, tasks }));
         }
 
+        async function refreshConfig() {
+            const config = await getJSON<Config>(http, "/snapraid/v1/config");
+            if (!cancelled)
+                setData(d => ({ ...d, config }));
+        }
+
         async function poll() {
             try {
                 const state = await getJSON<StateResponse>(http, "/snapraid/v1/state");
@@ -70,17 +77,19 @@ export function useSnapraidData(historyLimit: number): SnapraidData {
                 lastPulse = state.pulse;
 
                 if (!prev) {
-                    await Promise.all([refreshArray(), refreshDisks(), refreshTasks()]);
+                    await Promise.all([refreshArray(), refreshDisks(), refreshTasks(), refreshConfig()]);
                     return;
                 }
 
                 const jobs = [];
-                if (state.pulse.array !== prev.array || state.pulse.config !== prev.config)
+                if (state.pulse.array !== prev.array)
                     jobs.push(refreshArray());
                 if (state.pulse.disks !== prev.disks)
                     jobs.push(refreshDisks());
                 if (state.pulse.tasks !== prev.tasks || state.pulse.activity !== prev.activity)
                     jobs.push(refreshTasks());
+                if (state.pulse.config !== prev.config)
+                    jobs.push(refreshConfig());
                 await Promise.all(jobs);
             } catch (err) {
                 if (!cancelled)

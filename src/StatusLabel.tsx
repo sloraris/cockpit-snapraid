@@ -40,11 +40,14 @@ export const HealthLabel = ({ health, reason, isCompact = false }: { health: Hea
 export const PowerLabel = ({ power, isCompact = false }: { power: Power, isCompact?: boolean }) => {
     switch (power) {
     case 'active':
-        return <Label color="green" isCompact={isCompact}>{_("Active")}</Label>;
+        // Blue rather than green: "active" is a power state, not a health
+        // verdict, and sharing green with HealthLabel's "passed" makes the
+        // two easy to conflate when they're shown side by side.
+        return <Label color="blue" isCompact={isCompact}>{_("Active")}</Label>;
     case 'standby':
         return <Label color="grey" icon={<PowerOffIcon />} isCompact={isCompact}>{_("Standby")}</Label>;
     default:
-        return <Label color="blue" isCompact={isCompact}>{_("Pending")}</Label>;
+        return <Label color="purple" isCompact={isCompact}>{_("Pending")}</Label>;
     }
 };
 

@@ -6,6 +6,7 @@ import React from 'react';
 import { Button } from "@patternfly/react-core/dist/esm/components/Button/index.js";
 import { Card, CardBody, CardTitle } from "@patternfly/react-core/dist/esm/components/Card/index.js";
 import { EmptyState, EmptyStateBody } from "@patternfly/react-core/dist/esm/components/EmptyState/index.js";
+import { Label } from "@patternfly/react-core/dist/esm/components/Label/index.js";
 import { Spinner } from "@patternfly/react-core/dist/esm/components/Spinner/index.js";
 
 import cockpit from 'cockpit';
@@ -39,26 +40,82 @@ const duration = (task: Task): string | null => {
     const seconds = Math.max(0, Math.round((new Date(task.finished_at).getTime() - new Date(task.started_at).getTime()) / 1000));
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return m > 0 ? cockpit.format(_("$0m $1s"), m, s) : cockpit.format(_("$0s"), s);
+    // eslint-disable-next-line no-template-curly-in-string -- cockpit.format() placeholder syntax, not a template literal
+    return m > 0 ? cockpit.format(_("${0}m ${1}s"), m, s) : cockpit.format(_("${0}s"), s);
 };
 
 const MESSAGE_CLASS: Record<Message['level'], string> = {
     fatal: 'ct-icon-times-circle',
     error: 'ct-icon-exclamation-triangle',
     info: '',
-    verbose: '',
+    verbose: 'snapraid-subtle',
 };
 
-const TaskMessages = ({ messages }: { messages: Message[] }) => {
-    if (messages.length === 0)
-        return <i>{_("No log messages")}</i>;
+// Common signals worth naming; anything else just shows the raw number.
+const SIGNAL_NAMES: Record<number, string> = {
+    1: 'SIGHUP',
+    2: 'SIGINT',
+    3: 'SIGQUIT',
+    6: 'SIGABRT',
+    9: 'SIGKILL',
+    11: 'SIGSEGV',
+    13: 'SIGPIPE',
+    15: 'SIGTERM',
+};
+
+const MessageLine = ({ m }: { m: Message }) => (
+    <div className={ `snapraid-text-sm ${MESSAGE_CLASS[m.level]}` }>
+        { m.type === 'hardware' &&
+            <Label isCompact status="danger" className="snapraid-mr-sm">{_("Hardware")}</Label> }
+        { m.text }
+    </div>
+);
+
+// The collapsed row already shows a one-line result; expanding a task is
+// for digging into what actually happened, so surface everything the API
+// gives us: exit/signal/cancel status, fatal messages first (most likely
+// to explain a failure), the health verdict's reason, where the full CLI
+// log landed on disk, remaining messages, and any generated report text.
+const TaskDetail = ({ task }: { task: Task }) => {
+    const fatal = task.messages.filter(m => m.level === 'fatal');
+    const other = task.messages.filter(m => m.level !== 'fatal');
+
+    /* eslint-disable no-template-curly-in-string -- cockpit.format() placeholder syntax, not a template literal */
     return (
-        <div className="snapraid-task-messages">
-            { messages.map((m, i) => (
-                <div key={ i } className={ MESSAGE_CLASS[m.level] }>{ m.text }</div>
-            )) }
+        <div className="snapraid-task-detail">
+            { task.status === 'terminated' && !!task.exit_code &&
+                <div className="ct-icon-exclamation-triangle snapraid-text-sm snapraid-mb-xs">
+                    { cockpit.format(_("Exit code: ${0}"), task.exit_code) }
+                </div> }
+            { task.status === 'signaled' &&
+                <div className="ct-icon-times-circle snapraid-text-sm snapraid-mb-xs">
+                    { cockpit.format(_("Exit signal: ${0}"),
+                                     task.exit_sig !== undefined ? (SIGNAL_NAMES[task.exit_sig] ?? task.exit_sig) : "?") }
+                </div> }
+            { task.status === 'canceled' && task.exit_msg &&
+                <div className="snapraid-subtle snapraid-text-sm snapraid-mb-xs">{ task.exit_msg }</div> }
+
+            { fatal.map((m, i) => <MessageLine key={ `fatal-${i}` } m={ m } />) }
+
+            { task.health_reason &&
+                <div className="snapraid-text-sm snapraid-mb-xs">
+                    <HealthLabel health={ task.health } isCompact /> { task.health_reason }
+                </div> }
+
+            { task.log_file &&
+                <div className="snapraid-subtle snapraid-text-sm snapraid-mb-xs">
+                    { cockpit.format(_("Log file: ${0}"), task.log_file) }
+                </div> }
+
+            { other.map((m, i) => <MessageLine key={ `other-${i}` } m={ m } />) }
+
+            { fatal.length === 0 && other.length === 0 && !task.report_output &&
+                <i className="snapraid-subtle">{_("No log messages")}</i> }
+
+            { task.report_output && <pre className="snapraid-report-output">{ task.report_output }</pre> }
         </div>
     );
+    /* eslint-enable no-template-curly-in-string */
 };
 
 const historyRows = (history: Task[]): ListingTableRowProps[] => history.map(task => ({
@@ -71,7 +128,7 @@ const historyRows = (history: Task[]): ListingTableRowProps[] => history.map(tas
         { title: duration(task) ?? "—" },
         { title: task.exit_msg ?? (task.exit_code !== undefined ? cockpit.format(_("exit $0"), task.exit_code) : "—") },
     ],
-    expandedContent: <TaskMessages messages={ task.messages } />,
+    expandedContent: <TaskDetail task={ task } />,
 }));
 
 export const HISTORY_INITIAL_LIMIT = 15;

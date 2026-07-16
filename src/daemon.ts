@@ -8,6 +8,8 @@
 
 import cockpit from 'cockpit';
 
+import type { Config } from './types';
+
 export const DAEMON_PORT = "7627";
 export const DAEMON_ADDRESS = "127.0.0.1";
 
@@ -42,6 +44,40 @@ export async function stopActiveTask(): Promise<void> {
     const http = daemonClient();
     try {
         await http.post("/snapraid/v1/stop");
+    } finally {
+        http.close();
+    }
+}
+
+export async function undeleteFiles(filters?: string[]): Promise<void> {
+    const http = daemonClient();
+    try {
+        await http.post("/snapraid/v1/undelete", filters?.length ? { filters } : {});
+    } finally {
+        http.close();
+    }
+}
+
+export async function healArray(): Promise<void> {
+    const http = daemonClient();
+    try {
+        await http.post("/snapraid/v1/heal", {});
+    } finally {
+        http.close();
+    }
+}
+
+export async function patchConfig(partial: Partial<Config>): Promise<void> {
+    const http = daemonClient();
+    try {
+        // .post() JSON-encodes plain-object bodies for us, but it's hardcoded to
+        // method POST, so PATCH has to go through request() and do that manually.
+        await http.request({
+            path: "/snapraid/v1/config",
+            method: "PATCH",
+            body: JSON.stringify(partial),
+            headers: { "Content-Type": "application/json" },
+        });
     } finally {
         http.close();
     }
