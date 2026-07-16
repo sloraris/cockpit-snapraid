@@ -1,0 +1,11 @@
+// SPDX-License-Identifier: LGPL-2.1-or-later
+@use "page.scss";
+
+p {
+    font-weight: bold;
+}
+
+.snapraid-page {
+    padding-block: var(--pf-t--global--spacer--md) var(--pf-t--global--spacer--md);
+    padding-inline: var(--pf-t--global--spacer--lg) var(--pf-t--global--spacer--lg);
+}
