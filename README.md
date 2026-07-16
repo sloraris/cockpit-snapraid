@@ -1,5 +1,8 @@
 # SnapRAID Cockpit Plugin
 
+> [!WARNING]
+> This plugin is primarily developed as a personal project. It is currently in beta (as beta as my homelab prod gets, that is). Use at your own risk.
+
 A native [Cockpit](https://cockpit-project.org/) page for [snapraid-daemon](https://github.com/amadvance/snapraid-daemon).
 
 `snapraid-daemon`'s built-in web UI has no authentication and no TLS, so it's
