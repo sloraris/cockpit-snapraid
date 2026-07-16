@@ -28,7 +28,8 @@ const formatEta = (seconds?: number): string | null => {
         return null;
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
-    return cockpit.format(_("$0m $1s remaining"), m, s.toString().padStart(2, '0'));
+    // eslint-disable-next-line no-template-curly-in-string -- cockpit.format() placeholder syntax, not a template literal
+    return cockpit.format(_("${0}m ${1}s remaining"), m, s.toString().padStart(2, '0'));
 };
 
 export const ActionsCard = ({ state, tasks }: { state?: StateResponse | undefined, tasks?: TasksResponse | undefined }) => {
@@ -102,7 +103,7 @@ export const ActionsCard = ({ state, tasks }: { state?: StateResponse | undefine
                             </FlexItem> }
                     </Flex> }
 
-                { !isBusy && <span className="pf-v6-u-color-200">{_("Idle")}</span> }
+                { !isBusy && <span className="snapraid-subtle">{_("Idle")}</span> }
 
                 { pendingCount > 0 &&
                     <p>{ cockpit.format(cockpit.ngettext("$0 task queued", "$0 tasks queued", pendingCount), pendingCount) }</p> }

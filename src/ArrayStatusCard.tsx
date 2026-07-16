@@ -15,7 +15,6 @@ import { Spinner } from "@patternfly/react-core/dist/esm/components/Spinner/inde
 import cockpit from 'cockpit';
 import * as timeformat from 'timeformat';
 
-import { HealthLabel } from './StatusLabel';
 import type { ArrayInfo } from './types';
 
 const _ = cockpit.gettext;
@@ -59,19 +58,14 @@ const PendingChanges = ({ array }: { array: ArrayInfo }) => {
 export const ArrayStatusCard = ({ array }: { array?: ArrayInfo | undefined }) => {
     return (
         <Card>
-            <CardTitle>
-                <Flex alignItems={ { default: 'alignItemsCenter' } }>
-                    <FlexItem>{_("Array status")}</FlexItem>
-                    { array && <FlexItem><HealthLabel health={ array.health } reason={ array.health_reason } /></FlexItem> }
-                </Flex>
-            </CardTitle>
+            <CardTitle>{_("Array status")}</CardTitle>
             <CardBody>
                 { !array &&
                     <EmptyState titleText={ _("Loading array status…") } icon={ Spinner }>
                         <EmptyStateBody />
                     </EmptyState> }
                 { array &&
-                    <DescriptionList isHorizontal isCompact>
+                    <DescriptionList isHorizontal isCompact horizontalTermWidthModifier={ { default: '11em' } }>
                         <DescriptionListGroup>
                             <DescriptionListTerm>{_("Disks")}</DescriptionListTerm>
                             <DescriptionListDescription>
