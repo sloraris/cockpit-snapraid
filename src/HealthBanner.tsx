@@ -12,12 +12,16 @@ import type { ArrayInfo, Health } from './types';
 
 const _ = cockpit.gettext;
 
-const HEALTH_STATUS: Record<Health, 'success' | 'warning' | 'danger' | 'info'> = {
-    passed: 'success',
-    corrupt: 'danger',
-    prefail: 'warning',
-    failing: 'danger',
-    pending: 'info',
+// 'corrupt' (silent data errors, fixable from parity) and 'failing' (a disk
+// itself is dying) are different problems; sharing "danger" here would flatten
+// that distinction, so 'corrupt' gets its own color, matching HealthLabel and
+// snapraid-daemon's own UI.
+const HEALTH_BANNER: Record<Health, { status: 'success' | 'warning' | 'danger' | 'info' } | { color: 'purple' }> = {
+    passed: { status: 'success' },
+    corrupt: { color: 'purple' },
+    prefail: { status: 'warning' },
+    failing: { status: 'danger' },
+    pending: { status: 'info' },
 };
 
 const HEALTH_TEXT: Record<Health, string> = {
@@ -32,9 +36,11 @@ export const HealthBanner = ({ array }: { array?: ArrayInfo | undefined }) => {
     if (!array)
         return null;
 
+    const bannerProps = HEALTH_BANNER[array.health];
+
     return (
         <div className="snapraid-health-banner snapraid-mb-md">
-            <Banner status={ HEALTH_STATUS[array.health] }>
+            <Banner { ...bannerProps }>
                 <Flex spaceItems={ { default: 'spaceItemsSm' } } justifyContent={ { default: 'justifyContentCenter' } }>
                     <FlexItem>{ HEALTH_TEXT[array.health] }</FlexItem>
                     { array.health_reason && <FlexItem>—</FlexItem> }
