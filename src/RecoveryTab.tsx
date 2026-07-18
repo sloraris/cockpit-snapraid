@@ -22,6 +22,7 @@ import cockpit from 'cockpit';
 import { ListingTable } from 'cockpit-components-table';
 import type { ListingTableRowProps } from 'cockpit-components-table';
 
+import { ConfirmModal } from './ConfirmModal';
 import { healArray, undeleteFiles } from './daemon';
 import type { ArrayInfo } from './types';
 
@@ -32,7 +33,7 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
     const [patterns, setPatterns] = useState("");
     const [undeleting, setUndeleting] = useState(false);
     const [healing, setHealing] = useState(false);
-    const [spindownOnFinish, setSpindownOnFinish] = useState(false);
+    const [pendingAction, setPendingAction] = useState<'undelete' | 'heal' | null>(null);
 
     if (!array) {
         return (
@@ -42,14 +43,18 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
         );
     }
 
+    const filters = patterns.split("\n").map(l => l.trim())
+            .filter(Boolean);
+
     const runUndelete = () => {
-        const filters = patterns.split("\n").map(l => l.trim())
-                .filter(Boolean);
         setError(null);
         setUndeleting(true);
         undeleteFiles(filters, { spindown_on_finish: spindownOnFinish })
                 .catch(err => setError(cockpit.message(err)))
-                .finally(() => setUndeleting(false));
+                .finally(() => {
+                    setUndeleting(false);
+                    setPendingAction(null);
+                });
     };
 
     const runHeal = () => {
@@ -57,7 +62,10 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
         setHealing(true);
         healArray({ spindown_on_finish: spindownOnFinish })
                 .catch(err => setError(cockpit.message(err)))
-                .finally(() => setHealing(false));
+                .finally(() => {
+                    setHealing(false);
+                    setPendingAction(null);
+                });
     };
 
     const fixes = array.fixes ?? [];
@@ -103,7 +111,7 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
                                 aria-label={ _("Undelete file patterns") }
                                 className="snapraid-mb-md"
                             />
-                            <Button variant="primary" isLoading={ undeleting } onClick={ runUndelete }>
+                            <Button variant="primary" isLoading={ undeleting } onClick={ () => setPendingAction('undelete') }>
                                 {_("Undelete files")}
                             </Button>
                         </CardBody>
@@ -129,7 +137,7 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
                                 variant="danger"
                                 isLoading={ healing }
                                 isDisabled={ !array.blocks_bad }
-                                onClick={ runHeal }
+                                onClick={ () => setPendingAction('heal') }
                             >
                                 {_("Heal silent errors")}
                             </Button>
@@ -162,6 +170,31 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
                     </CardBody>
                 </Card>
             </StackItem>
+
+            <ConfirmModal
+                isOpen={ pendingAction === 'undelete' }
+                title={ _("Undelete files?") }
+                confirmLabel={ _("Undelete") }
+                isBusy={ undeleting }
+                onConfirm={ runUndelete }
+                onCancel={ () => setPendingAction(null) }
+                message={ filters.length
+                    ? cockpit.format(_("This will attempt to recover files matching: $0"), filters.join(", "))
+                    : _("No patterns entered — this will attempt to recover every missing file across the entire array.") }
+            />
+
+            <ConfirmModal
+                isOpen={ pendingAction === 'heal' }
+                title={ _("Heal silent errors?") }
+                confirmLabel={ _("Heal") }
+                isBusy={ healing }
+                onConfirm={ runHeal }
+                onCancel={ () => setPendingAction(null) }
+                message={ cockpit.format(
+                    _("This will rewrite $0 corrupt block(s) on the data disks using parity. This cannot be undone."),
+                    array.blocks_bad ?? 0
+                ) }
+            />
         </Stack>
     );
 };
