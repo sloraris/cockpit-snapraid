@@ -183,7 +183,7 @@ export const ActionsCard = (
                     <>
                         <Flex alignItems={ { default: 'alignItemsCenter' } }>
                             <FlexItem>{ COMMAND_LABEL[active.command] ?? active.command }</FlexItem>
-                            <FlexItem><TaskStatusLabel status={ active.status } isCompact /></FlexItem>
+                            <FlexItem><TaskStatusLabel task={ active } isCompact /></FlexItem>
                         </Flex>
                         { active.progress !== undefined &&
                             <Progress

@@ -2,12 +2,14 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@patternfly/react-core/dist/esm/components/Button/index.js";
 import { Card, CardBody, CardTitle } from "@patternfly/react-core/dist/esm/components/Card/index.js";
 import { EmptyState, EmptyStateBody } from "@patternfly/react-core/dist/esm/components/EmptyState/index.js";
+import { Flex, FlexItem } from "@patternfly/react-core/dist/esm/layouts/Flex/index.js";
 import { Label } from "@patternfly/react-core/dist/esm/components/Label/index.js";
 import { Spinner } from "@patternfly/react-core/dist/esm/components/Spinner/index.js";
+import { Switch } from "@patternfly/react-core/dist/esm/components/Switch/index.js";
 
 import cockpit from 'cockpit';
 import * as timeformat from 'timeformat';
@@ -122,7 +124,7 @@ const historyRows = (history: Task[]): ListingTableRowProps[] => history.map(tas
     props: { key: task.number },
     columns: [
         { title: COMMAND_LABEL[task.command] ?? task.command },
-        { title: <TaskStatusLabel status={ task.status } isCompact /> },
+        { title: <TaskStatusLabel task={ task } isCompact /> },
         { title: <HealthLabel health={ task.health } reason={ task.health_reason } isCompact /> },
         { title: task.started_at ? timeformat.dateTime(new Date(task.started_at)) : "—" },
         { title: duration(task) ?? "—" },
@@ -136,9 +138,27 @@ export const HISTORY_INITIAL_LIMIT = 15;
 export const HistoryCard = (
     { tasks, limit, onShowMore }: { tasks?: TasksResponse | undefined, limit: number, onShowMore: () => void }
 ) => {
+    // snapraid-daemon's own UI hides 'probe' runs from history by default —
+    // they happen every few minutes and drown out the tasks a user actually
+    // cares about.
+    const [hidePeriodic, setHidePeriodic] = useState(true);
+    const history = tasks ? (hidePeriodic ? tasks.history.filter(t => t.command !== 'probe') : tasks.history) : [];
+
     return (
         <Card>
-            <CardTitle>{_("Recent tasks")}</CardTitle>
+            <CardTitle>
+                <Flex justifyContent={ { default: 'justifyContentSpaceBetween' } } alignItems={ { default: 'alignItemsCenter' } }>
+                    <FlexItem>{_("Recent tasks")}</FlexItem>
+                    <FlexItem>
+                        <Switch
+                            id="history-hide-periodic"
+                            label={ _("Hide automatic probes") }
+                            isChecked={ hidePeriodic }
+                            onChange={ (_ev, checked) => setHidePeriodic(checked) }
+                        />
+                    </FlexItem>
+                </Flex>
+            </CardTitle>
             <CardBody>
                 { !tasks &&
                     <EmptyState titleText={ _("Loading task history…") } icon={ Spinner }>
@@ -148,7 +168,7 @@ export const HistoryCard = (
                     <>
                         <ListingTable
                             columns={ [_("Command"), _("Status"), _("Health"), _("Started"), _("Duration"), _("Result")] }
-                            rows={ historyRows(tasks.history) }
+                            rows={ historyRows(history) }
                             emptyCaption={ _("No tasks have run yet") }
                             variant="compact"
                         />

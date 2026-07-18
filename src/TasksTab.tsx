@@ -32,14 +32,36 @@ const COMMAND_LABEL: Record<string, string> = {
     down_idle: _("Down (idle)"),
 };
 
+const elapsedSince = (start?: string): string => {
+    if (!start)
+        return "—";
+    const seconds = Math.max(0, Math.round((Date.now() - new Date(start).getTime()) / 1000));
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    // eslint-disable-next-line no-template-curly-in-string -- cockpit.format() placeholder syntax, not a template literal
+    return m > 0 ? cockpit.format(_("${0}m ${1}s"), m, s) : cockpit.format(_("${0}s"), s);
+};
+
 const taskRows = (tasks: Task[], timeField: 'scheduled_at' | 'started_at'): ListingTableRowProps[] =>
     tasks.map(t => ({
         props: { key: t.number },
         columns: [
             { title: `#${t.number}` },
             { title: COMMAND_LABEL[t.command] ?? t.command },
-            { title: <TaskStatusLabel status={ t.status } isCompact /> },
+            { title: <TaskStatusLabel task={ t } isCompact /> },
             { title: t[timeField] ? timeformat.dateTime(new Date(t[timeField]!)) : "—" },
+        ],
+    }));
+
+const activeRows = (tasks: Task[]): ListingTableRowProps[] =>
+    tasks.map(t => ({
+        props: { key: t.number },
+        columns: [
+            { title: `#${t.number}` },
+            { title: COMMAND_LABEL[t.command] ?? t.command },
+            { title: <TaskStatusLabel task={ t } isCompact /> },
+            { title: t.started_at ? timeformat.dateTime(new Date(t.started_at)) : "—" },
+            { title: elapsedSince(t.started_at) },
         ],
     }));
 
@@ -69,8 +91,8 @@ export const TasksTab = (
                     <CardTitle>{_("Active")}</CardTitle>
                     <CardBody>
                         <ListingTable
-                            columns={ [_("ID"), _("Command"), _("Status"), _("Started")] }
-                            rows={ taskRows(tasks.active, 'started_at') }
+                            columns={ [_("ID"), _("Command"), _("Status"), _("Started"), _("Duration")] }
+                            rows={ activeRows(tasks.active) }
                             variant="compact"
                         />
                     </CardBody>

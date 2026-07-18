@@ -83,7 +83,7 @@ export const ActivityCard = ({ activity }: { activity?: ActivityResponse | undef
                                 { cockpit.format(_("Started $0"), activity.started_at ? timeformat.distanceToNow(new Date(activity.started_at)) : "—") }
                             </div>
                         </FlexItem>
-                        <FlexItem><TaskStatusLabel status={ activity.status } /></FlexItem>
+                        <FlexItem><TaskStatusLabel task={ activity } /></FlexItem>
                     </Flex>
                 </CardTitle>
                 <CardBody>
@@ -131,7 +131,7 @@ export const ActivityCard = ({ activity }: { activity?: ActivityResponse | undef
                 <Flex alignItems={ { default: 'alignItemsCenter' } }>
                     <FlexItem>{ formatFullCommand(activity) }</FlexItem>
                     <FlexItem><HealthLabel health={ activity.health } reason={ activity.health_reason } isCompact /></FlexItem>
-                    <FlexItem><TaskStatusLabel status={ activity.status } isCompact /></FlexItem>
+                    <FlexItem><TaskStatusLabel task={ activity } isCompact /></FlexItem>
                     { duration(activity.started_at, activity.finished_at) &&
                         <FlexItem className="snapraid-subtle snapraid-text-sm">
                             { cockpit.format(_("$0 duration"), duration(activity.started_at, activity.finished_at)) }
