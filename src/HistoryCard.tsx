@@ -2,12 +2,14 @@
  * SPDX-License-Identifier: LGPL-2.1-or-later
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@patternfly/react-core/dist/esm/components/Button/index.js";
 import { Card, CardBody, CardTitle } from "@patternfly/react-core/dist/esm/components/Card/index.js";
 import { EmptyState, EmptyStateBody } from "@patternfly/react-core/dist/esm/components/EmptyState/index.js";
+import { Flex, FlexItem } from "@patternfly/react-core/dist/esm/layouts/Flex/index.js";
 import { Label } from "@patternfly/react-core/dist/esm/components/Label/index.js";
 import { Spinner } from "@patternfly/react-core/dist/esm/components/Spinner/index.js";
+import { Switch } from "@patternfly/react-core/dist/esm/components/Switch/index.js";
 
 import cockpit from 'cockpit';
 import * as timeformat from 'timeformat';
@@ -20,7 +22,7 @@ import type { Message, Task, TasksResponse } from './types';
 
 const _ = cockpit.gettext;
 
-const COMMAND_LABEL: Record<string, string> = {
+export const COMMAND_LABEL: Record<string, string> = {
     probe: _("Probe"),
     up: _("Up"),
     down: _("Down"),
@@ -34,10 +36,10 @@ const COMMAND_LABEL: Record<string, string> = {
     down_idle: _("Down (idle)"),
 };
 
-const duration = (task: Task): string | null => {
-    if (!task.started_at || !task.finished_at)
+export const duration = (start?: string, end?: string): string | null => {
+    if (!start || !end)
         return null;
-    const seconds = Math.max(0, Math.round((new Date(task.finished_at).getTime() - new Date(task.started_at).getTime()) / 1000));
+    const seconds = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 1000));
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     // eslint-disable-next-line no-template-curly-in-string -- cockpit.format() placeholder syntax, not a template literal
@@ -63,7 +65,7 @@ const SIGNAL_NAMES: Record<number, string> = {
     15: 'SIGTERM',
 };
 
-const MessageLine = ({ m }: { m: Message }) => (
+export const MessageLine = ({ m }: { m: Message }) => (
     <div className={ `snapraid-text-sm ${MESSAGE_CLASS[m.level]}` }>
         { m.type === 'hardware' &&
             <Label isCompact status="danger" className="snapraid-mr-sm">{_("Hardware")}</Label> }
@@ -122,10 +124,10 @@ const historyRows = (history: Task[]): ListingTableRowProps[] => history.map(tas
     props: { key: task.number },
     columns: [
         { title: COMMAND_LABEL[task.command] ?? task.command },
-        { title: <TaskStatusLabel status={ task.status } isCompact /> },
+        { title: <TaskStatusLabel task={ task } isCompact /> },
         { title: <HealthLabel health={ task.health } reason={ task.health_reason } isCompact /> },
         { title: task.started_at ? timeformat.dateTime(new Date(task.started_at)) : "—" },
-        { title: duration(task) ?? "—" },
+        { title: duration(task.started_at, task.finished_at) ?? "—" },
         { title: task.exit_msg ?? (task.exit_code !== undefined ? cockpit.format(_("exit $0"), task.exit_code) : "—") },
     ],
     expandedContent: <TaskDetail task={ task } />,
@@ -136,9 +138,27 @@ export const HISTORY_INITIAL_LIMIT = 15;
 export const HistoryCard = (
     { tasks, limit, onShowMore }: { tasks?: TasksResponse | undefined, limit: number, onShowMore: () => void }
 ) => {
+    // snapraid-daemon's own UI hides 'probe' runs from history by default —
+    // they happen every few minutes and drown out the tasks a user actually
+    // cares about.
+    const [hidePeriodic, setHidePeriodic] = useState(true);
+    const history = tasks ? (hidePeriodic ? tasks.history.filter(t => t.command !== 'probe') : tasks.history) : [];
+
     return (
         <Card>
-            <CardTitle>{_("Recent tasks")}</CardTitle>
+            <CardTitle>
+                <Flex justifyContent={ { default: 'justifyContentSpaceBetween' } } alignItems={ { default: 'alignItemsCenter' } }>
+                    <FlexItem>{_("Recent tasks")}</FlexItem>
+                    <FlexItem>
+                        <Switch
+                            id="history-hide-periodic"
+                            label={ _("Hide automatic probes") }
+                            isChecked={ hidePeriodic }
+                            onChange={ (_ev, checked) => setHidePeriodic(checked) }
+                        />
+                    </FlexItem>
+                </Flex>
+            </CardTitle>
             <CardBody>
                 { !tasks &&
                     <EmptyState titleText={ _("Loading task history…") } icon={ Spinner }>
@@ -148,7 +168,7 @@ export const HistoryCard = (
                     <>
                         <ListingTable
                             columns={ [_("Command"), _("Status"), _("Health"), _("Started"), _("Duration"), _("Result")] }
-                            rows={ historyRows(tasks.history) }
+                            rows={ historyRows(history) }
                             emptyCaption={ _("No tasks have run yet") }
                             variant="compact"
                         />

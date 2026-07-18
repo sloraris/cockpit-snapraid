@@ -17,21 +17,45 @@ import TimesCircleIcon from '@patternfly/react-icons/dist/esm/icons/times-circle
 
 import cockpit from 'cockpit';
 
-import type { Health, Power, TaskStatus } from './types';
+import type { Health, Power, Task, TaskStatus } from './types';
 
 const _ = cockpit.gettext;
 
-const HEALTH_LABEL: Record<Health, { status: 'success' | 'warning' | 'danger' | 'info', text: string }> = {
-    passed: { status: 'success', text: _("Passed") },
-    corrupt: { status: 'danger', text: _("Corrupt") },
-    prefail: { status: 'warning', text: _("Prefail") },
-    failing: { status: 'danger', text: _("Failing") },
-    pending: { status: 'info', text: _("Pending") },
+export type LabelStatus = 'success' | 'warning' | 'danger' | 'info';
+export type LabelColor = 'blue' | 'teal' | 'green' | 'orange' | 'purple' | 'red' | 'orangered' | 'grey' | 'yellow';
+// The subset of LabelColor that PatternFly's Banner also accepts (Banner has
+// no 'grey'); HEALTH_COLOR is shared with HealthBanner, so its color values
+// need to stay in this narrower set even though HealthLabel alone could use
+// any LabelColor.
+type SharedColor = Exclude<LabelColor, 'grey'>;
+
+// 'corrupt' (silent data errors, fixable from parity) and 'failing' (a disk
+// itself is dying) are different problems that both happening to map to
+// PatternFly's "danger" status would flatten the distinction; 'corrupt' gets
+// its own color instead, matching snapraid-daemon's own UI. Shared with
+// HealthBanner so the two components don't each carry their own copy of this
+// mapping.
+export const HEALTH_COLOR: Record<Health, { status?: LabelStatus, color?: SharedColor }> = {
+    passed: { status: 'success' },
+    corrupt: { color: 'purple' },
+    prefail: { status: 'warning' },
+    failing: { status: 'danger' },
+    pending: { status: 'info' },
+};
+
+const HEALTH_TEXT: Record<Health, string> = {
+    passed: _("Passed"),
+    corrupt: _("Corrupt"),
+    prefail: _("Prefail"),
+    failing: _("Failing"),
+    pending: _("Pending"),
 };
 
 export const HealthLabel = ({ health, reason, isCompact = false }: { health: Health, reason?: string | undefined, isCompact?: boolean }) => {
-    const info = HEALTH_LABEL[health];
-    const label = <Label status={info.status} isCompact={isCompact}>{info.text}</Label>;
+    // Label's `status` and `color` props aren't mutually exclusive in its
+    // type (status just takes precedence when both are given), so both can
+    // be spread directly with no discriminating check needed.
+    const label = <Label { ...HEALTH_COLOR[health] } isCompact={ isCompact }>{ HEALTH_TEXT[health] }</Label>;
     if (!reason)
         return label;
     return <Tooltip content={reason}>{label}</Tooltip>;
@@ -51,18 +75,42 @@ export const PowerLabel = ({ power, isCompact = false }: { power: Power, isCompa
     }
 };
 
-const TASK_STATUS_LABEL: Record<TaskStatus, { color: 'grey' | 'blue' | 'orange', icon: React.ReactNode, text: string }> = {
+type FinishedStatus = 'terminated' | 'signaled' | 'canceled';
+
+// Whether a task's raw lifecycle status means it's done running, regardless
+// of whether it succeeded — used to tell the active task apart from history.
+export const isTaskFinished = (status: TaskStatus): status is FinishedStatus =>
+    status === 'terminated' || status === 'signaled' || status === 'canceled';
+
+// In-flight statuses: shown as-is, colored by how noteworthy they are. Typed
+// over the non-finished statuses (rather than `string`) so a new TaskStatus
+// value fails the build here instead of throwing at runtime.
+const IN_PROGRESS_LABEL: Record<Exclude<TaskStatus, FinishedStatus>, { color: LabelColor, icon: React.ReactNode, text: string }> = {
     queued: { color: 'grey', icon: <PendingIcon />, text: _("Queued") },
-    starting: { color: 'blue', icon: <InProgressIcon />, text: _("Starting") },
+    starting: { color: 'yellow', icon: <InProgressIcon />, text: _("Starting") },
     processing: { color: 'blue', icon: <InProgressIcon />, text: _("Processing") },
-    finalizing: { color: 'blue', icon: <InProgressIcon />, text: _("Finalizing") },
-    stopping: { color: 'orange', icon: <PendingIcon />, text: _("Stopping") },
-    terminated: { color: 'grey', icon: <CheckCircleIcon />, text: _("Terminated") },
-    signaled: { color: 'orange', icon: <ExclamationTriangleIcon />, text: _("Signaled") },
-    canceled: { color: 'grey', icon: <TimesCircleIcon />, text: _("Canceled") },
+    finalizing: { color: 'purple', icon: <InProgressIcon />, text: _("Finalizing") },
+    stopping: { color: 'purple', icon: <PendingIcon />, text: _("Stopping") },
 };
 
-export const TaskStatusLabel = ({ status, isCompact = false }: { status: TaskStatus, isCompact?: boolean }) => {
-    const info = TASK_STATUS_LABEL[status];
-    return <Label color={info.color} icon={info.icon} isCompact={isCompact}>{info.text}</Label>;
+// A finished task's raw 'status' only says the process ended without being
+// killed — it says nothing about whether the run actually succeeded. Derive
+// the same result snapraid-daemon's own UI shows: a clean exit is "Success",
+// a 'diff' that found changes (exit code 2) is called out as "Differences"
+// rather than an error, and anything else non-zero is "Error".
+export const TaskStatusLabel = ({ task, isCompact = false }: { task: Task, isCompact?: boolean }) => {
+    if (task.status === 'terminated') {
+        if (task.command === 'diff' && task.exit_code === 2)
+            return <Label color="yellow" icon={ <ExclamationTriangleIcon /> } isCompact={ isCompact }>{_("Differences")}</Label>;
+        if (task.exit_code)
+            return <Label color="red" icon={ <TimesCircleIcon /> } isCompact={ isCompact }>{_("Error")}</Label>;
+        return <Label color="green" icon={ <CheckCircleIcon /> } isCompact={ isCompact }>{_("Success")}</Label>;
+    }
+    if (task.status === 'signaled')
+        return <Label color="red" icon={ <ExclamationTriangleIcon /> } isCompact={ isCompact }>{_("Signaled")}</Label>;
+    if (task.status === 'canceled')
+        return <Label color="red" icon={ <TimesCircleIcon /> } isCompact={ isCompact }>{_("Canceled")}</Label>;
+
+    const info = IN_PROGRESS_LABEL[task.status];
+    return <Label color={ info.color } icon={ info.icon } isCompact={ isCompact }>{ info.text }</Label>;
 };

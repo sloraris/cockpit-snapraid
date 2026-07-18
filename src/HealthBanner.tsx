@@ -8,17 +8,10 @@ import { Flex, FlexItem } from "@patternfly/react-core/dist/esm/layouts/Flex/ind
 
 import cockpit from 'cockpit';
 
+import { HEALTH_COLOR } from './StatusLabel';
 import type { ArrayInfo, Health } from './types';
 
 const _ = cockpit.gettext;
-
-const HEALTH_STATUS: Record<Health, 'success' | 'warning' | 'danger' | 'info'> = {
-    passed: 'success',
-    corrupt: 'danger',
-    prefail: 'warning',
-    failing: 'danger',
-    pending: 'info',
-};
 
 const HEALTH_TEXT: Record<Health, string> = {
     passed: _("Array is healthy"),
@@ -32,9 +25,15 @@ export const HealthBanner = ({ array }: { array?: ArrayInfo | undefined }) => {
     if (!array)
         return null;
 
+    // Unlike Label, Banner's status/color props are mutually exclusive in its
+    // type, so (unlike HealthLabel) this has to pick exactly one to pass.
+    // HEALTH_COLOR always sets exactly one of the two per health value.
+    const colors = HEALTH_COLOR[array.health];
+    const bannerProps = colors.status ? { status: colors.status } : { color: colors.color! };
+
     return (
         <div className="snapraid-health-banner snapraid-mb-md">
-            <Banner status={ HEALTH_STATUS[array.health] }>
+            <Banner { ...bannerProps }>
                 <Flex spaceItems={ { default: 'spaceItemsSm' } } justifyContent={ { default: 'justifyContentCenter' } }>
                     <FlexItem>{ HEALTH_TEXT[array.health] }</FlexItem>
                     { array.health_reason && <FlexItem>—</FlexItem> }

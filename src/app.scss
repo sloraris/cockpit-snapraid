@@ -89,3 +89,31 @@ p {
     margin-block-start: var(--pf-t--global--spacer--sm);
     margin-bottom: 0;
 }
+
+.snapraid-mono-sm {
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: var(--pf-t--global--font--size--body--sm);
+}
+
+// Highlights the dashboard's active-task card the way snapraid-daemon's own
+// UI calls out its hero card, using status tokens so it still tracks
+// Cockpit's light/dark theme instead of a hardcoded accent color.
+.snapraid-glow {
+    border-color: var(--pf-t--global--border--color--status--info--default);
+    box-shadow: 0 0 0 1px var(--pf-t--global--border--color--status--info--default),
+        0 0 var(--pf-t--global--spacer--md) color-mix(in srgb, var(--pf-t--global--icon--color--status--info--default) 35%, transparent);
+}
+
+.snapraid-log-window {
+    max-height: 16rem;
+    overflow-y: auto;
+    padding: var(--pf-t--global--spacer--sm);
+    border-radius: var(--pf-t--global--border--radius--medium);
+    background-color: var(--pf-t--global--background--color--tertiary--default);
+    font-family: var(--pf-t--global--font--family--mono);
+    font-size: var(--pf-t--global--font--size--body--sm);
+}
+
+.snapraid-log-window > * + * {
+    margin-block-start: var(--pf-t--global--spacer--100);
+}

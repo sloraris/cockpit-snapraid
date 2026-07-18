@@ -3,6 +3,8 @@
  */
 
 import React, { useState } from 'react';
+import { Alert } from "@patternfly/react-core/dist/esm/components/Alert/index.js";
+import { Button } from "@patternfly/react-core/dist/esm/components/Button/index.js";
 import { Card, CardBody, CardTitle } from "@patternfly/react-core/dist/esm/components/Card/index.js";
 import { EmptyState, EmptyStateBody } from "@patternfly/react-core/dist/esm/components/EmptyState/index.js";
 import { Spinner } from "@patternfly/react-core/dist/esm/components/Spinner/index.js";
@@ -14,6 +16,7 @@ import CheckCircleIcon from '@patternfly/react-icons/dist/esm/icons/check-circle
 
 import cockpit from 'cockpit';
 
+import { scheduleCommands } from './daemon';
 import { HealthLabel, PowerLabel } from './StatusLabel';
 import { SmartDetailModal } from './SmartDetailModal';
 import { TempSparkline } from './TempSparkline';
@@ -196,11 +199,48 @@ const DiskCard = ({ disk, role, onShowSmart }: { disk: Disk, role: string, onSho
 
 export const DisksCard = ({ disks }: { disks?: DisksResponse | undefined }) => {
     const [smartDevice, setSmartDevice] = useState<Device | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [spinning, setSpinning] = useState<'up' | 'down' | null>(null);
+
+    const spin = (direction: 'up' | 'down') => {
+        setError(null);
+        setSpinning(direction);
+        scheduleCommands([direction])
+                .catch(err => setError(cockpit.message(err)))
+                .finally(() => setSpinning(null));
+    };
 
     return (
         <Card>
-            <CardTitle>{_("Disks")}</CardTitle>
+            <CardTitle>
+                <Flex justifyContent={ { default: 'justifyContentSpaceBetween' } } alignItems={ { default: 'alignItemsCenter' } }>
+                    <FlexItem>{_("Disks")}</FlexItem>
+                    <FlexItem>
+                        <Flex spaceItems={ { default: 'spaceItemsSm' } }>
+                            <FlexItem>
+                                <Button
+                                    variant="secondary" size="sm"
+                                    isLoading={ spinning === 'up' } isDisabled={ !!spinning }
+                                    onClick={ () => spin('up') }
+                                >
+                                    {_("Spin up")}
+                                </Button>
+                            </FlexItem>
+                            <FlexItem>
+                                <Button
+                                    variant="secondary" size="sm"
+                                    isLoading={ spinning === 'down' } isDisabled={ !!spinning }
+                                    onClick={ () => spin('down') }
+                                >
+                                    {_("Spin down")}
+                                </Button>
+                            </FlexItem>
+                        </Flex>
+                    </FlexItem>
+                </Flex>
+            </CardTitle>
             <CardBody>
+                { error && <Alert variant="danger" isInline title={ _("Action failed") } className="snapraid-mb-md">{ error }</Alert> }
                 { !disks &&
                     <EmptyState titleText={ _("Loading disks…") } icon={ Spinner }>
                         <EmptyStateBody />
