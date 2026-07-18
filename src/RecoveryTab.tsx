@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { Alert } from "@patternfly/react-core/dist/esm/components/Alert/index.js";
 import { Button } from "@patternfly/react-core/dist/esm/components/Button/index.js";
 import { Card, CardBody, CardTitle } from "@patternfly/react-core/dist/esm/components/Card/index.js";
+import { Checkbox } from "@patternfly/react-core/dist/esm/components/Checkbox/index.js";
 import {
     DescriptionList, DescriptionListDescription, DescriptionListGroup, DescriptionListTerm,
 } from "@patternfly/react-core/dist/esm/components/DescriptionList/index.js";
@@ -31,6 +32,7 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
     const [patterns, setPatterns] = useState("");
     const [undeleting, setUndeleting] = useState(false);
     const [healing, setHealing] = useState(false);
+    const [spindownOnFinish, setSpindownOnFinish] = useState(false);
 
     if (!array) {
         return (
@@ -45,7 +47,7 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
                 .filter(Boolean);
         setError(null);
         setUndeleting(true);
-        undeleteFiles(filters)
+        undeleteFiles(filters, { spindown_on_finish: spindownOnFinish })
                 .catch(err => setError(cockpit.message(err)))
                 .finally(() => setUndeleting(false));
     };
@@ -53,7 +55,7 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
     const runHeal = () => {
         setError(null);
         setHealing(true);
-        healArray()
+        healArray({ spindown_on_finish: spindownOnFinish })
                 .catch(err => setError(cockpit.message(err)))
                 .finally(() => setHealing(false));
     };
@@ -74,6 +76,15 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
                 <StackItem>
                     <Alert variant="danger" isInline title={ _("Recovery action failed") }>{ error }</Alert>
                 </StackItem> }
+
+            <StackItem>
+                <Checkbox
+                    id="recovery-spindown-on-finish"
+                    label={ _("Spin down all disks once the task finishes") }
+                    isChecked={ spindownOnFinish }
+                    onChange={ (_ev, checked) => setSpindownOnFinish(checked) }
+                />
+            </StackItem>
 
             <StackItem>
                 <Gallery hasGutter minWidths={ { default: '100%', md: '420px' } }>

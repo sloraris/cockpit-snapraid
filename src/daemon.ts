@@ -8,7 +8,7 @@
 
 import cockpit from 'cockpit';
 
-import type { Config } from './types';
+import type { CommandOptions, Config } from './types';
 
 export const DAEMON_PORT = "7627";
 export const DAEMON_ADDRESS = "127.0.0.1";
@@ -49,19 +49,46 @@ export async function stopActiveTask(): Promise<void> {
     }
 }
 
-export async function undeleteFiles(filters?: string[]): Promise<void> {
+export async function undeleteFiles(filters?: string[], options?: Omit<CommandOptions, 'filters'>): Promise<void> {
     const http = daemonClient();
     try {
-        await http.post("/snapraid/v1/undelete", filters?.length ? { filters } : {});
+        await http.post("/snapraid/v1/undelete", { ...options, ...(filters?.length ? { filters } : {}) });
     } finally {
         http.close();
     }
 }
 
-export async function healArray(): Promise<void> {
+export async function healArray(options?: CommandOptions): Promise<void> {
     const http = daemonClient();
     try {
-        await http.post("/snapraid/v1/heal", {});
+        await http.post("/snapraid/v1/heal", { ...options });
+    } finally {
+        http.close();
+    }
+}
+
+export async function startMaintenance(options?: CommandOptions): Promise<void> {
+    const http = daemonClient();
+    try {
+        await http.post("/snapraid/v1/maintenance", { ...options });
+    } finally {
+        http.close();
+    }
+}
+
+export async function requestRefresh(): Promise<void> {
+    const http = daemonClient();
+    try {
+        await http.post("/snapraid/v1/refresh");
+    } finally {
+        http.close();
+    }
+}
+
+export async function setHoldOff(enabled: boolean): Promise<void> {
+    const http = daemonClient();
+    try {
+        await http.post("/snapraid/v1/hold_off", { enabled });
     } finally {
         http.close();
     }

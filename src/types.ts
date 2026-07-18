@@ -47,6 +47,7 @@ export interface Task {
     elapsed_seconds?: number;
     blocks_count?: number;
     blocks_done?: number;
+    size_done_bytes?: number;
     log_file?: string;
     report_output?: string;
     messages: Message[];
@@ -196,6 +197,28 @@ export interface ArrayInfo {
     fix_recovered?: number;
     fix_unrecoverable?: number;
     fixes?: Fix[];
+}
+
+export interface ActivityResponse extends Task {
+    pulse: Pulse;
+}
+
+export interface SystemInfo {
+    hostname?: string;
+    os_distribution?: string;
+    os_kernel_version?: string;
+    uptime_seconds?: number;
+    cpu_model?: string;
+    memory_total_bytes?: number;
+    memory_free_bytes?: number;
+    is_ecc?: boolean;
+    motherboard?: string;
+}
+
+export interface CommandOptions {
+    filters?: string[];
+    ignore_thresholds?: boolean;
+    spindown_on_finish?: boolean;
 }
 
 export type LogLevel = 'critical' | 'error' | 'warning' | 'info';

@@ -43,7 +43,10 @@ export const Application = () => {
             >
                 <Tab eventKey="dashboard" title={ <TabTitleText>{_("Dashboard")}</TabTitleText> }>
                     <div className="snapraid-mt-md">
-                        <DashboardTab array={ data.array } state={ data.state } tasks={ data.tasks } />
+                        <DashboardTab
+                                array={ data.array } state={ data.state } tasks={ data.tasks }
+                                system={ data.system } activity={ data.activity }
+                        />
                     </div>
                 </Tab>
                 <Tab eventKey="disks" title={ <TabTitleText>{_("Disks")}</TabTitleText> }>

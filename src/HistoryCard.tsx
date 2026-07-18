@@ -63,7 +63,7 @@ const SIGNAL_NAMES: Record<number, string> = {
     15: 'SIGTERM',
 };
 
-const MessageLine = ({ m }: { m: Message }) => (
+export const MessageLine = ({ m }: { m: Message }) => (
     <div className={ `snapraid-text-sm ${MESSAGE_CLASS[m.level]}` }>
         { m.type === 'hardware' &&
             <Label isCompact status="danger" className="snapraid-mr-sm">{_("Hardware")}</Label> }

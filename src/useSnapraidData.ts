@@ -15,9 +15,10 @@ import { useEffect, useState } from 'react';
 import cockpit from 'cockpit';
 
 import { daemonClient, getJSON } from './daemon';
-import type { ArrayInfo, Config, DisksResponse, Pulse, StateResponse, TasksResponse } from './types';
+import type { ActivityResponse, ArrayInfo, Config, DisksResponse, Pulse, StateResponse, SystemInfo, TasksResponse } from './types';
 
 const POLL_INTERVAL_MS = 3000;
+const SYSTEM_POLL_INTERVAL_MS = 60000;
 const LIMIT_MESSAGES = 10;
 const LIMIT_DIFFS = 50;
 const LIMIT_FIXES = 50;
@@ -28,6 +29,8 @@ export interface SnapraidData {
     disks?: DisksResponse;
     tasks?: TasksResponse;
     config?: Config;
+    system?: SystemInfo;
+    activity?: ActivityResponse;
     error?: string | undefined;
     loading: boolean;
 }
@@ -39,6 +42,7 @@ export function useSnapraidData(historyLimit: number): SnapraidData {
         let cancelled = false;
         const http = daemonClient();
         let lastPulse: Pulse | null = null;
+        let lastSystemPollAt = 0;
 
         async function refreshArray() {
             const array = await getJSON<ArrayInfo>(http, "/snapraid/v1/array",
@@ -66,6 +70,20 @@ export function useSnapraidData(historyLimit: number): SnapraidData {
                 setData(d => ({ ...d, config }));
         }
 
+        async function refreshSystem() {
+            const system = await getJSON<SystemInfo>(http, "/snapraid/v1/system");
+            if (!cancelled)
+                setData(d => ({ ...d, system }));
+        }
+
+        async function refreshActivity() {
+            // 204 No Content until the daemon has run its first task since restart.
+            const text = await http.request({ path: "/snapraid/v1/activity", method: "GET", body: "", params: { limit_messages: LIMIT_MESSAGES } });
+            if (cancelled || !text)
+                return;
+            setData(d => ({ ...d, activity: JSON.parse(text) as ActivityResponse }));
+        }
+
         async function poll() {
             try {
                 const state = await getJSON<StateResponse>(http, "/snapraid/v1/state");
@@ -76,8 +94,14 @@ export function useSnapraidData(historyLimit: number): SnapraidData {
                 const prev = lastPulse;
                 lastPulse = state.pulse;
 
+                const dueForSystemPoll = (Date.now() - lastSystemPollAt) >= SYSTEM_POLL_INTERVAL_MS;
+
                 if (!prev) {
-                    await Promise.all([refreshArray(), refreshDisks(), refreshTasks(), refreshConfig()]);
+                    lastSystemPollAt = Date.now();
+                    await Promise.all([
+                        refreshArray(), refreshDisks(), refreshTasks(), refreshConfig(),
+                        refreshSystem(), refreshActivity(),
+                    ]);
                     return;
                 }
 
@@ -90,6 +114,12 @@ export function useSnapraidData(historyLimit: number): SnapraidData {
                     jobs.push(refreshTasks());
                 if (state.pulse.config !== prev.config)
                     jobs.push(refreshConfig());
+                if (state.pulse.activity !== prev.activity)
+                    jobs.push(refreshActivity());
+                if (dueForSystemPoll) {
+                    lastSystemPollAt = Date.now();
+                    jobs.push(refreshSystem());
+                }
                 await Promise.all(jobs);
             } catch (err) {
                 if (!cancelled)
