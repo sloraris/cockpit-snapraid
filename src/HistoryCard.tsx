@@ -22,7 +22,7 @@ import type { Message, Task, TasksResponse } from './types';
 
 const _ = cockpit.gettext;
 
-const COMMAND_LABEL: Record<string, string> = {
+export const COMMAND_LABEL: Record<string, string> = {
     probe: _("Probe"),
     up: _("Up"),
     down: _("Down"),
@@ -36,10 +36,10 @@ const COMMAND_LABEL: Record<string, string> = {
     down_idle: _("Down (idle)"),
 };
 
-const duration = (task: Task): string | null => {
-    if (!task.started_at || !task.finished_at)
+export const duration = (start?: string, end?: string): string | null => {
+    if (!start || !end)
         return null;
-    const seconds = Math.max(0, Math.round((new Date(task.finished_at).getTime() - new Date(task.started_at).getTime()) / 1000));
+    const seconds = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 1000));
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     // eslint-disable-next-line no-template-curly-in-string -- cockpit.format() placeholder syntax, not a template literal
@@ -127,7 +127,7 @@ const historyRows = (history: Task[]): ListingTableRowProps[] => history.map(tas
         { title: <TaskStatusLabel task={ task } isCompact /> },
         { title: <HealthLabel health={ task.health } reason={ task.health_reason } isCompact /> },
         { title: task.started_at ? timeformat.dateTime(new Date(task.started_at)) : "—" },
-        { title: duration(task) ?? "—" },
+        { title: duration(task.started_at, task.finished_at) ?? "—" },
         { title: task.exit_msg ?? (task.exit_code !== undefined ? cockpit.format(_("exit $0"), task.exit_code) : "—") },
     ],
     expandedContent: <TaskDetail task={ task } />,

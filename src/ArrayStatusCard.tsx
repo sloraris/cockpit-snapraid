@@ -19,7 +19,7 @@ import type { ArrayInfo } from './types';
 
 const _ = cockpit.gettext;
 
-const Timestamp = ({ t }: { t?: string | undefined }) => {
+export const Timestamp = ({ t }: { t?: string | undefined }) => {
     if (!t)
         return <>{_("Never")}</>;
     const d = new Date(t);

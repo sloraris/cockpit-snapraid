@@ -12,25 +12,11 @@ import * as timeformat from 'timeformat';
 import { ListingTable } from 'cockpit-components-table';
 import type { ListingTableRowProps } from 'cockpit-components-table';
 
-import { HISTORY_INITIAL_LIMIT, HistoryCard } from './HistoryCard';
+import { COMMAND_LABEL, HISTORY_INITIAL_LIMIT, HistoryCard } from './HistoryCard';
 import { TaskStatusLabel } from './StatusLabel';
 import type { Task, TasksResponse } from './types';
 
 const _ = cockpit.gettext;
-
-const COMMAND_LABEL: Record<string, string> = {
-    probe: _("Probe"),
-    up: _("Up"),
-    down: _("Down"),
-    smart: _("SMART"),
-    diff: _("Diff"),
-    sync: _("Sync"),
-    scrub: _("Scrub"),
-    check: _("Check"),
-    fix: _("Fix"),
-    report: _("Report"),
-    down_idle: _("Down (idle)"),
-};
 
 const elapsedSince = (start?: string): string => {
     if (!start)
@@ -53,16 +39,12 @@ const taskRows = (tasks: Task[], timeField: 'scheduled_at' | 'started_at'): List
         ],
     }));
 
+// Active tasks show the same columns as the queue/history tables plus a
+// live-elapsed column, so build on taskRows() rather than restating them.
 const activeRows = (tasks: Task[]): ListingTableRowProps[] =>
-    tasks.map(t => ({
-        props: { key: t.number },
-        columns: [
-            { title: `#${t.number}` },
-            { title: COMMAND_LABEL[t.command] ?? t.command },
-            { title: <TaskStatusLabel task={ t } isCompact /> },
-            { title: t.started_at ? timeformat.dateTime(new Date(t.started_at)) : "—" },
-            { title: elapsedSince(t.started_at) },
-        ],
+    taskRows(tasks, 'started_at').map((row, i) => ({
+        ...row,
+        columns: [...row.columns, { title: elapsedSince(tasks[i].started_at) }],
     }));
 
 export const TasksTab = (

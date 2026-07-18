@@ -17,29 +17,45 @@ import TimesCircleIcon from '@patternfly/react-icons/dist/esm/icons/times-circle
 
 import cockpit from 'cockpit';
 
-import type { Health, Power, Task } from './types';
+import type { Health, Power, Task, TaskStatus } from './types';
 
 const _ = cockpit.gettext;
 
-type LabelStatus = 'success' | 'warning' | 'danger' | 'info';
-type LabelColor = 'blue' | 'teal' | 'green' | 'orange' | 'purple' | 'red' | 'orangered' | 'grey' | 'yellow';
+export type LabelStatus = 'success' | 'warning' | 'danger' | 'info';
+export type LabelColor = 'blue' | 'teal' | 'green' | 'orange' | 'purple' | 'red' | 'orangered' | 'grey' | 'yellow';
+// The subset of LabelColor that PatternFly's Banner also accepts (Banner has
+// no 'grey'); HEALTH_COLOR is shared with HealthBanner, so its color values
+// need to stay in this narrower set even though HealthLabel alone could use
+// any LabelColor.
+type SharedColor = Exclude<LabelColor, 'grey'>;
 
 // 'corrupt' (silent data errors, fixable from parity) and 'failing' (a disk
 // itself is dying) are different problems that both happening to map to
 // PatternFly's "danger" status would flatten the distinction; 'corrupt' gets
-// its own color instead, matching snapraid-daemon's own UI.
-const HEALTH_LABEL: Record<Health, { status: LabelStatus, text: string } | { color: LabelColor, text: string }> = {
-    passed: { status: 'success', text: _("Passed") },
-    corrupt: { color: 'purple', text: _("Corrupt") },
-    prefail: { status: 'warning', text: _("Prefail") },
-    failing: { status: 'danger', text: _("Failing") },
-    pending: { status: 'info', text: _("Pending") },
+// its own color instead, matching snapraid-daemon's own UI. Shared with
+// HealthBanner so the two components don't each carry their own copy of this
+// mapping.
+export const HEALTH_COLOR: Record<Health, { status?: LabelStatus, color?: SharedColor }> = {
+    passed: { status: 'success' },
+    corrupt: { color: 'purple' },
+    prefail: { status: 'warning' },
+    failing: { status: 'danger' },
+    pending: { status: 'info' },
+};
+
+const HEALTH_TEXT: Record<Health, string> = {
+    passed: _("Passed"),
+    corrupt: _("Corrupt"),
+    prefail: _("Prefail"),
+    failing: _("Failing"),
+    pending: _("Pending"),
 };
 
 export const HealthLabel = ({ health, reason, isCompact = false }: { health: Health, reason?: string | undefined, isCompact?: boolean }) => {
-    const info = HEALTH_LABEL[health];
-    const colorProps = 'status' in info ? { status: info.status } : { color: info.color };
-    const label = <Label { ...colorProps } isCompact={ isCompact }>{ info.text }</Label>;
+    // Label's `status` and `color` props aren't mutually exclusive in its
+    // type (status just takes precedence when both are given), so both can
+    // be spread directly with no discriminating check needed.
+    const label = <Label { ...HEALTH_COLOR[health] } isCompact={ isCompact }>{ HEALTH_TEXT[health] }</Label>;
     if (!reason)
         return label;
     return <Tooltip content={reason}>{label}</Tooltip>;
@@ -59,8 +75,17 @@ export const PowerLabel = ({ power, isCompact = false }: { power: Power, isCompa
     }
 };
 
-// In-flight statuses: shown as-is, colored by how noteworthy they are.
-const IN_PROGRESS_LABEL: Record<string, { color: LabelColor, icon: React.ReactNode, text: string }> = {
+type FinishedStatus = 'terminated' | 'signaled' | 'canceled';
+
+// Whether a task's raw lifecycle status means it's done running, regardless
+// of whether it succeeded — used to tell the active task apart from history.
+export const isTaskFinished = (status: TaskStatus): status is FinishedStatus =>
+    status === 'terminated' || status === 'signaled' || status === 'canceled';
+
+// In-flight statuses: shown as-is, colored by how noteworthy they are. Typed
+// over the non-finished statuses (rather than `string`) so a new TaskStatus
+// value fails the build here instead of throwing at runtime.
+const IN_PROGRESS_LABEL: Record<Exclude<TaskStatus, FinishedStatus>, { color: LabelColor, icon: React.ReactNode, text: string }> = {
     queued: { color: 'grey', icon: <PendingIcon />, text: _("Queued") },
     starting: { color: 'yellow', icon: <InProgressIcon />, text: _("Starting") },
     processing: { color: 'blue', icon: <InProgressIcon />, text: _("Processing") },

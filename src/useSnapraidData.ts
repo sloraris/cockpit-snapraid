@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 
 import cockpit from 'cockpit';
 
-import { daemonClient, getJSON } from './daemon';
+import { daemonClient, getJSON, getJSONOrUndefined } from './daemon';
 import type { ActivityResponse, ArrayInfo, Config, DisksResponse, Pulse, StateResponse, SystemInfo, TasksResponse } from './types';
 
 const POLL_INTERVAL_MS = 3000;
@@ -78,10 +78,9 @@ export function useSnapraidData(historyLimit: number): SnapraidData {
 
         async function refreshActivity() {
             // 204 No Content until the daemon has run its first task since restart.
-            const text = await http.request({ path: "/snapraid/v1/activity", method: "GET", body: "", params: { limit_messages: LIMIT_MESSAGES } });
-            if (cancelled || !text)
-                return;
-            setData(d => ({ ...d, activity: JSON.parse(text) as ActivityResponse }));
+            const activity = await getJSONOrUndefined<ActivityResponse>(http, "/snapraid/v1/activity", { limit_messages: LIMIT_MESSAGES });
+            if (!cancelled && activity)
+                setData(d => ({ ...d, activity }));
         }
 
         async function poll() {
@@ -94,8 +93,6 @@ export function useSnapraidData(historyLimit: number): SnapraidData {
                 const prev = lastPulse;
                 lastPulse = state.pulse;
 
-                const dueForSystemPoll = (Date.now() - lastSystemPollAt) >= SYSTEM_POLL_INTERVAL_MS;
-
                 if (!prev) {
                     lastSystemPollAt = Date.now();
                     await Promise.all([
@@ -105,18 +102,19 @@ export function useSnapraidData(historyLimit: number): SnapraidData {
                     return;
                 }
 
+                const activityChanged = state.pulse.activity !== prev.activity;
                 const jobs = [];
                 if (state.pulse.array !== prev.array)
                     jobs.push(refreshArray());
                 if (state.pulse.disks !== prev.disks)
                     jobs.push(refreshDisks());
-                if (state.pulse.tasks !== prev.tasks || state.pulse.activity !== prev.activity)
+                if (state.pulse.tasks !== prev.tasks || activityChanged)
                     jobs.push(refreshTasks());
                 if (state.pulse.config !== prev.config)
                     jobs.push(refreshConfig());
-                if (state.pulse.activity !== prev.activity)
+                if (activityChanged)
                     jobs.push(refreshActivity());
-                if (dueForSystemPoll) {
+                if ((Date.now() - lastSystemPollAt) >= SYSTEM_POLL_INTERVAL_MS) {
                     lastSystemPollAt = Date.now();
                     jobs.push(refreshSystem());
                 }

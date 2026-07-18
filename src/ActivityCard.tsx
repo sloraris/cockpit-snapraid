@@ -12,28 +12,14 @@ import { Progress } from "@patternfly/react-core/dist/esm/components/Progress/in
 import { Flex, FlexItem } from "@patternfly/react-core/dist/esm/layouts/Flex/index.js";
 
 import cockpit from 'cockpit';
-import * as timeformat from 'timeformat';
 
 import { formatEta } from './ActionsCard';
-import { MessageLine } from './HistoryCard';
-import { HealthLabel, TaskStatusLabel } from './StatusLabel';
+import { Timestamp } from './ArrayStatusCard';
+import { COMMAND_LABEL, duration, MessageLine } from './HistoryCard';
+import { HealthLabel, isTaskFinished, TaskStatusLabel } from './StatusLabel';
 import type { ActivityResponse } from './types';
 
 const _ = cockpit.gettext;
-
-const COMMAND_LABEL: Record<string, string> = {
-    probe: _("Probe"),
-    up: _("Up"),
-    down: _("Down"),
-    smart: _("SMART"),
-    diff: _("Diff"),
-    sync: _("Sync"),
-    scrub: _("Scrub"),
-    check: _("Check"),
-    fix: _("Fix"),
-    report: _("Report"),
-    down_idle: _("Down (idle)"),
-};
 
 const HIGH_COMMAND_LABEL: Record<string, string> = {
     maintenance: _("Maintenance"),
@@ -45,16 +31,6 @@ const HIGH_COMMAND_LABEL: Record<string, string> = {
 const formatFullCommand = (t: ActivityResponse): string => {
     const command = COMMAND_LABEL[t.command] ?? t.command;
     return t.high_command ? `${HIGH_COMMAND_LABEL[t.high_command] ?? t.high_command} · ${command}` : command;
-};
-
-const duration = (start?: string, end?: string): string | null => {
-    if (!start || !end)
-        return null;
-    const seconds = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 1000));
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    // eslint-disable-next-line no-template-curly-in-string -- cockpit.format() placeholder syntax, not a template literal
-    return m > 0 ? cockpit.format(_("${0}m ${1}s"), m, s) : cockpit.format(_("${0}s"), s);
 };
 
 export const ActivityCard = ({ activity }: { activity?: ActivityResponse | undefined }) => {
@@ -69,7 +45,7 @@ export const ActivityCard = ({ activity }: { activity?: ActivityResponse | undef
         );
     }
 
-    const isActive = !['terminated', 'signaled', 'canceled'].includes(activity.status);
+    const isActive = !isTaskFinished(activity.status);
     const messages = activity.messages.filter(m => m.level !== 'verbose');
 
     if (isActive) {
@@ -80,7 +56,7 @@ export const ActivityCard = ({ activity }: { activity?: ActivityResponse | undef
                         <FlexItem>
                             { cockpit.format(_("Active: $0"), formatFullCommand(activity)) }
                             <div className="snapraid-subtle snapraid-text-sm">
-                                { cockpit.format(_("Started $0"), activity.started_at ? timeformat.distanceToNow(new Date(activity.started_at)) : "—") }
+                                {_("Started")} <Timestamp t={ activity.started_at } />
                             </div>
                         </FlexItem>
                         <FlexItem><TaskStatusLabel task={ activity } /></FlexItem>
@@ -123,6 +99,8 @@ export const ActivityCard = ({ activity }: { activity?: ActivityResponse | undef
         );
     }
 
+    const taskDuration = duration(activity.started_at, activity.finished_at);
+
     return (
         <Card>
             <CardTitle>{_("Activity")}</CardTitle>
@@ -132,9 +110,9 @@ export const ActivityCard = ({ activity }: { activity?: ActivityResponse | undef
                     <FlexItem>{ formatFullCommand(activity) }</FlexItem>
                     <FlexItem><HealthLabel health={ activity.health } reason={ activity.health_reason } isCompact /></FlexItem>
                     <FlexItem><TaskStatusLabel task={ activity } isCompact /></FlexItem>
-                    { duration(activity.started_at, activity.finished_at) &&
+                    { taskDuration &&
                         <FlexItem className="snapraid-subtle snapraid-text-sm">
-                            { cockpit.format(_("$0 duration"), duration(activity.started_at, activity.finished_at)) }
+                            { cockpit.format(_("$0 duration"), taskDuration) }
                         </FlexItem> }
                 </Flex>
             </CardBody>

@@ -34,7 +34,12 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
     const [undeleting, setUndeleting] = useState(false);
     const [healing, setHealing] = useState(false);
     const [pendingAction, setPendingAction] = useState<'undelete' | 'heal' | null>(null);
-    const [spindownOnFinish, setSpindownOnFinish] = useState(false);
+    // Kept as two separate options (rather than one shared toggle) since
+    // undelete and heal are independent actions a user can trigger at
+    // different times — a single shared checkbox would silently carry a
+    // choice made for one action over to the other.
+    const [undeleteSpindown, setUndeleteSpindown] = useState(false);
+    const [healSpindown, setHealSpindown] = useState(false);
 
     if (!array) {
         return (
@@ -50,7 +55,7 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
     const runUndelete = () => {
         setError(null);
         setUndeleting(true);
-        undeleteFiles(filters, { spindown_on_finish: spindownOnFinish })
+        undeleteFiles(filters, { spindown_on_finish: undeleteSpindown })
                 .catch(err => setError(cockpit.message(err)))
                 .finally(() => {
                     setUndeleting(false);
@@ -61,7 +66,7 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
     const runHeal = () => {
         setError(null);
         setHealing(true);
-        healArray({ spindown_on_finish: spindownOnFinish })
+        healArray({ spindown_on_finish: healSpindown })
                 .catch(err => setError(cockpit.message(err)))
                 .finally(() => {
                     setHealing(false);
@@ -85,15 +90,6 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
                 <StackItem>
                     <Alert variant="danger" isInline title={ _("Recovery action failed") }>{ error }</Alert>
                 </StackItem> }
-
-            <StackItem>
-                <Checkbox
-                    id="recovery-spindown-on-finish"
-                    label={ _("Spin down all disks once the task finishes") }
-                    isChecked={ spindownOnFinish }
-                    onChange={ (_ev, checked) => setSpindownOnFinish(checked) }
-                />
-            </StackItem>
 
             <StackItem>
                 <Gallery hasGutter minWidths={ { default: '100%', md: '420px' } }>
@@ -179,9 +175,21 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
                 isBusy={ undeleting }
                 onConfirm={ runUndelete }
                 onCancel={ () => setPendingAction(null) }
-                message={ filters.length
-                    ? cockpit.format(_("This will attempt to recover files matching: $0"), filters.join(", "))
-                    : _("No patterns entered — this will attempt to recover every missing file across the entire array.") }
+                message={
+                    <>
+                        <p className="snapraid-mb-md">
+                            { filters.length
+                                ? cockpit.format(_("This will attempt to recover files matching: $0"), filters.join(", "))
+                                : _("No patterns entered — this will attempt to recover every missing file across the entire array.") }
+                        </p>
+                        <Checkbox
+                            id="undelete-spindown-on-finish"
+                            label={ _("Spin down all disks once finished") }
+                            isChecked={ undeleteSpindown }
+                            onChange={ (_ev, checked) => setUndeleteSpindown(checked) }
+                        />
+                    </>
+                }
             />
 
             <ConfirmModal
@@ -191,10 +199,22 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
                 isBusy={ healing }
                 onConfirm={ runHeal }
                 onCancel={ () => setPendingAction(null) }
-                message={ cockpit.format(
-                    _("This will rewrite $0 corrupt block(s) on the data disks using parity. This cannot be undone."),
-                    array.blocks_bad ?? 0
-                ) }
+                message={
+                    <>
+                        <p className="snapraid-mb-md">
+                            { cockpit.format(
+                                _("This will rewrite $0 corrupt block(s) on the data disks using parity. This cannot be undone."),
+                                array.blocks_bad ?? 0
+                            ) }
+                        </p>
+                        <Checkbox
+                            id="heal-spindown-on-finish"
+                            label={ _("Spin down all disks once finished") }
+                            isChecked={ healSpindown }
+                            onChange={ (_ev, checked) => setHealSpindown(checked) }
+                        />
+                    </>
+                }
             />
         </Stack>
     );

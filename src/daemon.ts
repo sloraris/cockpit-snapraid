@@ -31,6 +31,23 @@ export async function getJSON<T>(
     return JSON.parse(text) as T;
 }
 
+// Like getJSON, but for endpoints that can return 204 No Content with an
+// empty body instead of JSON (e.g. /activity before the daemon's first task).
+// Kept separate rather than folded into getJSON: this project's
+// exactOptionalPropertyTypes tsconfig means every other getJSON caller
+// assigns straight into an optional SnapraidData field, where an explicit
+// `undefined` value (as opposed to the key being merely absent) is a type
+// error, so widening getJSON itself would push an `!== undefined` guard onto
+// every one of those callers instead of just this one.
+export async function getJSONOrUndefined<T>(
+    http: ReturnType<typeof daemonClient>,
+    path: string,
+    params?: Record<string, string | number>
+): Promise<T | undefined> {
+    const text = await http.request({ path, method: "GET", body: "", ...(params ? { params } : {}) });
+    return text ? JSON.parse(text) as T : undefined;
+}
+
 export async function scheduleCommands(commands: string[]): Promise<void> {
     const http = daemonClient();
     try {

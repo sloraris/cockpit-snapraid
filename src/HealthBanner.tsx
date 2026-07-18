@@ -8,21 +8,10 @@ import { Flex, FlexItem } from "@patternfly/react-core/dist/esm/layouts/Flex/ind
 
 import cockpit from 'cockpit';
 
+import { HEALTH_COLOR } from './StatusLabel';
 import type { ArrayInfo, Health } from './types';
 
 const _ = cockpit.gettext;
-
-// 'corrupt' (silent data errors, fixable from parity) and 'failing' (a disk
-// itself is dying) are different problems; sharing "danger" here would flatten
-// that distinction, so 'corrupt' gets its own color, matching HealthLabel and
-// snapraid-daemon's own UI.
-const HEALTH_BANNER: Record<Health, { status: 'success' | 'warning' | 'danger' | 'info' } | { color: 'purple' }> = {
-    passed: { status: 'success' },
-    corrupt: { color: 'purple' },
-    prefail: { status: 'warning' },
-    failing: { status: 'danger' },
-    pending: { status: 'info' },
-};
 
 const HEALTH_TEXT: Record<Health, string> = {
     passed: _("Array is healthy"),
@@ -36,7 +25,11 @@ export const HealthBanner = ({ array }: { array?: ArrayInfo | undefined }) => {
     if (!array)
         return null;
 
-    const bannerProps = HEALTH_BANNER[array.health];
+    // Unlike Label, Banner's status/color props are mutually exclusive in its
+    // type, so (unlike HealthLabel) this has to pick exactly one to pass.
+    // HEALTH_COLOR always sets exactly one of the two per health value.
+    const colors = HEALTH_COLOR[array.health];
+    const bannerProps = colors.status ? { status: colors.status } : { color: colors.color! };
 
     return (
         <div className="snapraid-health-banner snapraid-mb-md">
