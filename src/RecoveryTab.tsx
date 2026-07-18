@@ -34,6 +34,7 @@ export const RecoveryTab = ({ array }: { array?: ArrayInfo | undefined }) => {
     const [undeleting, setUndeleting] = useState(false);
     const [healing, setHealing] = useState(false);
     const [pendingAction, setPendingAction] = useState<'undelete' | 'heal' | null>(null);
+    const [spindownOnFinish, setSpindownOnFinish] = useState(false);
 
     if (!array) {
         return (
