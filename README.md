@@ -2,6 +2,7 @@
 
 > [!WARNING]
 > This plugin is primarily developed as a personal project. It is currently in beta (as beta as my homelab prod gets, that is). Use at your own risk.
+
 > [!INFO]AI Disclaimer
 > This project is co-authored by Claude. Code is manually reviewed and functionally checked by me.
 
