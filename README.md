@@ -1,9 +1,10 @@
 # SnapRAID Cockpit Plugin
 
 > [!WARNING]
-> This plugin is primarily developed as a personal project. It is currently in beta (as beta as my homelab prod gets, that is). Use at your own risk.
-> [!INFO]AI Disclaimer
-> This project is co-authored by Claude. Code is manually reviewed and functionally checked by me.
+> I no longer am actively using Cockpit in my homelab, thus this project is not being maintained by me. See the [CuratedCoding](https://github.com/CuratedCoding/cockpit-snapraid) fork for more updates.
+
+> [!Note]
+> This plugin is primarily developed as a personal project. It is currently in beta (as beta as my homelab prod gets, that is). Use at your own risk. This project is also co-authored by Claude. Code is manually reviewed and functionally checked by me.
 
 A native [Cockpit](https://cockpit-project.org/) page for [snapraid-daemon](https://github.com/amadvance/snapraid-daemon).
 
